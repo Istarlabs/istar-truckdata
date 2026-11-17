@@ -4,7 +4,8 @@ A Qt 6 library that reads what **Euro Truck Simulator 2** and **American Truck S
 
 - **Save games** (`game.sii`, `profile.sii`) in all three shapes the games write: encrypted (`ScsC`), binary (`BSII`)
   and text (`SiiN`). Every unit with every value, and on top of that what a player cares about: the career, the
-  delivery and bus job logs, the offences.
+  delivery and bus job logs, the offences, and the company - garages, hired drivers with their skills and jobs,
+  trucks and trailers with their wear, the bank, the profit logs and the repairs paid on the road.
 - **The game's archives** (`.scs`, HashFS version 2), for the names of cities, countries, companies and cargoes in
   every language the game has.
 - **Where they are**: the profiles in Steam's cloud folder and in the Proton prefix, in every Steam library, and the

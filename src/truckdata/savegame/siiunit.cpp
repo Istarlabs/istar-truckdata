@@ -15,6 +15,23 @@ namespace TruckData::SaveGame
         return values.value(key).toLongLong();
     }
 
+    double SiiUnit::real(const QString& key) const
+    {
+        return values.value(key).toDouble();
+    }
+
+    QList<double> SiiUnit::reals(const QString& key) const
+    {
+        QList<double> result;
+
+        for (const QVariant& value : values.value(key).toList())
+        {
+            result.append(value.toDouble());
+        }
+
+        return result;
+    }
+
     QStringList SiiUnit::texts(const QString& key) const
     {
         QStringList result;

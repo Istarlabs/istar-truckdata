@@ -33,6 +33,9 @@ add_library(istar-truckdata STATIC
     src/truckdata/gamedata/hashfsarchive.h
     src/truckdata/savegame/career.cpp
     src/truckdata/savegame/career.h
+    src/truckdata/savegame/company.cpp
+    src/truckdata/savegame/company.h
+    src/truckdata/savegame/ids.h
     src/truckdata/savegame/job.h
     src/truckdata/savegame/savegamefile.cpp
     src/truckdata/savegame/savegamefile.h

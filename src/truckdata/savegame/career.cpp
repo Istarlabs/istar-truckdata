@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
 #include "truckdata/savegame/career.h"
+#include "truckdata/savegame/ids.h"
 
 #include <algorithm>
 #include <iterator>
@@ -12,18 +13,7 @@ namespace TruckData::SaveGame
 {
     namespace
     {
-        /// "company.volatile.posped.bremen" is the company "posped" in the city "bremen".
-        std::pair<QString, QString> companyAndCity(const QString& reference)
-        {
-            const QStringList parts = reference.split(u'.');
-
-            if (parts.size() < 4)
-            {
-                return {};
-            }
-
-            return {parts.at(2), parts.at(3)};
-        }
+        using Ids::companyAndCity;
 
         /// The first three counters of a "by mode" list, which has one per way of driving.
         std::array<qint64, 3> modes(const SiiUnit& unit, const QString& key)
@@ -69,7 +59,13 @@ namespace TruckData::SaveGame
         career.fuelPrice = economy->number(u"total_fuel_price"_s);
         career.gasStationVisits = economy->number(u"gas_station_visit_count"_s);
         career.serviceVisits = economy->number(u"service_visit_count"_s);
-        career.garages = economy->texts(u"garages"_s).size();
+        // The economy lists a garage for every city, owned or not; one the player owns has a status.
+        career.garages = std::ranges::count_if(economy->texts(u"garages"_s),
+                                               [&document](const QString& id)
+                                               {
+                                                   const SiiUnit* garage = document.unit(id);
+                                                   return garage != nullptr && garage->number(u"status"_s) != 0;
+                                               });
         career.longestClean = economy->number(u"clean_distance_max"_s);
         career.currentClean = economy->number(u"clean_distance_counter"_s);
         career.longestWithoutCargoDamage = economy->number(u"no_cargo_damage_distance_max"_s);
