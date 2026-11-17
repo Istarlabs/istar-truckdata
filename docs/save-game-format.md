@@ -147,7 +147,8 @@ to the rest by id.
 | Experience, game time | `economy.experience_points`, `economy.game_time` (in-game minutes since day 1) |
 | Money | `bank.money_account`, the unit `economy.bank` refers to |
 | Kilometres, real and game time by vehicle | `economy.total_distances_by_mode`, `total_real_times_by_mode`, `total_game_times_by_mode` |
-| Cancelled jobs, cities, garages | `cancelled_job_count`, the lengths of `visited_cities` and `garages` |
+| Cancelled jobs, cities | `cancelled_job_count`, the length of `visited_cities` |
+| Garages | The garages of `economy.garages` with a `status` other than 0 (see *The company*) |
 | Fuel, visits | `total_fuel_litres`, `total_fuel_price`, `gas_station_visit_count`, `service_visit_count` |
 | Records | `clean_distance_max`/`_counter`, `no_cargo_damage_distance_max`, `no_violation_distance_max`/`_counter` |
 | Ferry crossings | The sum of `use_count` over the entries of `economy.ferry_log` |
@@ -164,6 +165,49 @@ speeding_camera, no_lights, red_signal, speeding, avoid_weighing, illegal_traile
 illegal_border_crossing, hard_shoulder_violation, damaged_vehicle_usage, generic. `perOffence()` pads or cuts a list
 to that length, so one from another version of the game does not shift the offences. `offence_counter` counts every
 offence the game noticed, also with fines turned off; the two `offence_total_*` lists count only the fined ones.
+
+### The company (`companyFrom()`)
+
+What follows was checked against a save of ETS2 1.5x with 58 garages, 57 hired drivers, 58 trucks and 24 trailers.
+
+**Garages.** `economy.garages` lists a `garage` unit for every city of the map, `garage.<city>`, owned or not: 237 in
+that save. One the player owns has a `status` other than 0; seen were 2 with three slots and 3 with five (the
+headquarters is one of them). `vehicles` and `drivers` are the slots, as long as each other: the truck and the driver
+of slot *n* belong together. An empty slot is an empty id. `trailers` lists the garage's trailers, `productivity` (a
+float, 0 to 1) is how busy it is, `profit_log` its log.
+
+**Drivers.** `player.drivers` lists every driver of the company: one `driver_player` (the player, in a slot of one
+garage like anyone else) and the `driver_ai` units. A hired driver has
+
+| Field | Content |
+|---|---|
+| `hometown`, `current_city` | City ids |
+| `experience_points` | Experience |
+| `adr` | The ADR classes as bits, one each: 1, 3, 7, 15, 31, 63 |
+| `long_dist`, `heavy`, `fragile`, `urgent`, `mechanical` | The other skills, 0 to 6, in the game's order: long distance, high-value cargo, fragile cargo, just-in-time delivery, ecodriving |
+| `driver_job` | A `job_info`: `cargo`, `source_company`, `target_company` (`company.volatile.<company>.<city>`), `planned_distance_km` |
+| `state` | 1, 2 or 4; what they stand for is not known, every driver of that save had a job |
+| `profit_log` | The driver's log |
+
+The save holds no names of drivers, only their ids (`driver.136`).
+
+**Trucks and trailers.** `player.trucks` and `player.trailers` list them. A vehicle's model is the accessory whose
+`data_path` is its definition, `/def/vehicle/truck/<model>/data.sii` (`trailer_owned` for a trailer).
+`license_plate` is markup for the game's font, `H<offset …><img …><offset …>JV 5319|germany`: each run of tags stands
+for a gap, the country follows the bar. Wear is per part, 0 to 1: `engine_wear`, `transmission_wear`, `cabin_wear`,
+`chassis_wear`, and `wheels_wear` per wheel; each has an `_unfixable` share as well, not read. `odometer` is
+kilometres, `fuel_relative` the tank. A trailer's body type is `body_type` of its `trailer_definition`.
+
+**Profit logs.** A `profit_log` has `stats_data`, a list of `profit_log_entry`: `revenue`, `wage`, `maintenance`,
+`fuel`, `distance` (`distance_on_job` whether on a job), `cargo_count`, `cargo`, `source_city`, `source_company`,
+`destination_city`, `destination_company` and `timestamp_day`, the in-game day. The game keeps only the last days: in
+that save the player's log reached back seven in-game days, twelve entries. In a hired driver's entries
+`maintenance` is the truck's upkeep on the job. In the player's own log the bills come as entries of their own,
+without distance: one with only `fuel`, one with only `maintenance` - a repair (53,457 on one day of that save).
+
+**The bank.** `money_account`, `loan_limit`, `loans` (a list; that save had none, so a loan's fields are not known),
+`coinsurance_fixed` and `coinsurance_ratio` (what the player pays of an accident: a fixed sum and a share), and
+`overdraft`.
 
 ### Truck jobs: `delivery_log`
 

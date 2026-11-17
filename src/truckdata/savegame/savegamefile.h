@@ -36,7 +36,8 @@ namespace TruckData::SaveGame
 
         Kind kind = Kind::NotASaveGame;
         quint32 valueType = 0;
-        QString field;
+        // Initialized, so `SiiError{.kind = ...}` leaves no member out (-Wmissing-field-initializers).
+        QString field = {}; // NOLINT(readability-redundant-member-init)
 
         [[nodiscard]] QString message() const;
     };

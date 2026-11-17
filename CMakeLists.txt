@@ -9,6 +9,12 @@ if(PROJECT_IS_TOP_LEVEL)
     set(CMAKE_CXX_STANDARD 23)
     set(CMAKE_CXX_STANDARD_REQUIRED ON)
     set(CMAKE_CXX_EXTENSIONS OFF)
+
+    # At least as strict as the applications that add the library, so a warning shows up here first. An application
+    # brings its own flags; these are not forced on it.
+    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+        add_compile_options(-Wall -Wextra -Wpedantic)
+    endif()
 endif()
 
 find_package(Qt6 6.8 REQUIRED COMPONENTS Core)
@@ -27,6 +33,9 @@ add_library(istar-truckdata STATIC
     src/truckdata/gamedata/hashfsarchive.h
     src/truckdata/savegame/career.cpp
     src/truckdata/savegame/career.h
+    src/truckdata/savegame/company.cpp
+    src/truckdata/savegame/company.h
+    src/truckdata/savegame/ids.h
     src/truckdata/savegame/job.h
     src/truckdata/savegame/savegamefile.cpp
     src/truckdata/savegame/savegamefile.h

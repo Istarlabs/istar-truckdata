@@ -22,8 +22,11 @@ namespace TruckData::SaveGame
         [[nodiscard]] QString text(const QString& key) const;
         /// A whole number; 0 for one that is missing or not a number.
         [[nodiscard]] qint64 number(const QString& key) const;
+        /// A number with a fraction (a float of the file); 0 for one that is missing or not a number.
+        [[nodiscard]] double real(const QString& key) const;
         [[nodiscard]] QStringList texts(const QString& key) const;
         [[nodiscard]] QList<qint64> numbers(const QString& key) const;
+        [[nodiscard]] QList<double> reals(const QString& key) const;
     };
 
     /// The units of a file, found by id or by type.
