@@ -144,6 +144,9 @@ namespace TruckData::SaveGame
         /// The hired drivers, not the player.
         QList<Driver> drivers;
         QList<Truck> trucks;
+        /// The buses, kept like the trucks: the model is a bus's definition ("volvo.9700_23"), and a bus stands in
+        /// no garage and has no driver of its own.
+        QList<Truck> buses;
         QList<Trailer> trailers;
         Bank bank;
         /// The player's own id among the drivers of the garages, and the player's profit log: deliveries, and the

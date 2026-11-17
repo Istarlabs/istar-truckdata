@@ -42,6 +42,8 @@ player : _nameless.3 {
  trucks[1]: _nameless.11
  trailers: 1
  trailers[0]: _nameless.20
+ buses: 1
+ buses[0]: _nameless.12
 }
 
 garage : garage.hannover {
@@ -111,6 +113,18 @@ vehicle : _nameless.10 {
 
 vehicle_accessory : _nameless.50 {
  data_path: "/def/vehicle/truck/scania.r_2016/data.sii"
+}
+
+vehicle : _nameless.12 {
+ accessories: 1
+ accessories[0]: _nameless.52
+ license_plate: "H<offset hshift=4><img src=/material/ui/lp/germany/b.mat><offset hshift=4>VF 695|germany"
+ odometer: 5495
+ engine_wear: &3e800000
+}
+
+vehicle_accessory : _nameless.52 {
+ data_path: "/def/vehicle/bus/volvo.9700_23/data.sii"
 }
 
 vehicle : _nameless.11 {
@@ -272,6 +286,20 @@ profit_log_entry : _nameless.72 {
             QCOMPARE(trailer.bodyType, QStringLiteral("curtainside"));
             QCOMPARE(trailer.bodyWear, 0.25);
             QCOMPARE(trailer.garageCityId, QStringLiteral("hannover"));
+        }
+
+        void theBusesAsTheTrucks()
+        {
+            // A bus is no truck, and stands in no garage.
+            QCOMPARE(m_company.trucks.size(), 2);
+            QCOMPARE(m_company.buses.size(), 1);
+            const Truck& bus = m_company.buses.first();
+            QCOMPARE(bus.model, QStringLiteral("volvo.9700_23"));
+            QCOMPARE(bus.licensePlate, QStringLiteral("H VF 695"));
+            QCOMPARE(bus.odometer, 5495);
+            QCOMPARE(bus.engineWear, 0.25);
+            QVERIFY(bus.garageCityId.isEmpty());
+            QVERIFY(bus.driverId.isEmpty());
         }
 
         void thePlayersLogHasTheRepairs()

@@ -191,8 +191,9 @@ garage like anyone else) and the `driver_ai` units. A hired driver has
 
 The save holds no names of drivers, only their ids (`driver.136`).
 
-**Trucks and trailers.** `player.trucks` and `player.trailers` list them. A vehicle's model is the accessory whose
-`data_path` is its definition, `/def/vehicle/truck/<model>/data.sii` (`trailer_owned` for a trailer).
+**Trucks, buses and trailers.** `player.trucks`, `player.buses` and `player.trailers` list them. A bus is a
+`vehicle` unit like a truck, and stands in no garage. A vehicle's model is the accessory whose `data_path` is its
+definition, `/def/vehicle/truck/<model>/data.sii` (`bus` for a bus, `trailer_owned` for a trailer).
 `license_plate` is markup for the game's font, `H<offset …><img …><offset …>JV 5319|germany`: each run of tags stands
 for a gap, the country follows the bar. Wear is per part, 0 to 1: `engine_wear`, `transmission_wear`, `cabin_wear`,
 `chassis_wear`, and `wheels_wear` per wheel; each has an `_unfixable` share as well, not read. `odometer` is

@@ -160,11 +160,13 @@ namespace TruckData::SaveGame
             return driver;
         }
 
-        Truck truckFrom(const SiiDocument& document, const QString& id, const SiiUnit& unit, const Places& places)
+        /// A truck, or a bus: the same unit, its definition under /def/vehicle/<kind>/.
+        Truck truckFrom(const SiiDocument& document, const QString& id, const SiiUnit& unit, const Places& places,
+                        const QString& kind)
         {
             Truck truck;
             truck.id = id;
-            truck.model = modelOf(document, unit, u"truck"_s);
+            truck.model = modelOf(document, unit, kind);
             std::tie(truck.licensePlate, truck.plateCountry) = licensePlate(unit.text(u"license_plate"_s));
             truck.odometer = unit.number(u"odometer"_s);
             truck.engineWear = unit.real(u"engine_wear"_s);
@@ -251,7 +253,15 @@ namespace TruckData::SaveGame
         {
             if (const SiiUnit* unit = document.unit(id))
             {
-                company.trucks.append(truckFrom(document, id, *unit, places));
+                company.trucks.append(truckFrom(document, id, *unit, places, u"truck"_s));
+            }
+        }
+
+        for (const QString& id : player->texts(u"buses"_s))
+        {
+            if (const SiiUnit* unit = document.unit(id))
+            {
+                company.buses.append(truckFrom(document, id, *unit, places, u"bus"_s));
             }
         }
 
