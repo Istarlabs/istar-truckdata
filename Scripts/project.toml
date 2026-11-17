@@ -1,0 +1,18 @@
+# What this project differs by. Everything else lives in the shared devscripts checkout.
+name = "istar-truckdata"
+env_prefix = "TRUCKDATA"
+
+# A library: there is no program to run, the tests are what `cpp.py verify` runs.
+[cpp]
+build_dir = "build"
+build_type = "RelWithDebInfo"
+
+# Applications of any licence may use it; changes to the library itself stay open.
+[spdx]
+holder = "Pascal Klose"
+licence = "LGPL-3.0-or-later"
+# cityhash.cpp and cityhash.h are a port of Google's CityHash and carry its MIT lines themselves.
+
+[repo]
+main_branch = "master"
+ci = false
