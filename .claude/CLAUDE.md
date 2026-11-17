@@ -26,4 +26,4 @@ Claude Code asks once per project whether these files outside the repository may
 - `docs/save-game-format.md` and `docs/game-archives.md` describe the formats byte by byte. A new field read from a save
   game is documented there in the same change, with what it was checked against.
 - `cityhash.*` is a port of Google's CityHash 1.0.3 and stays MIT; every other file is LGPL-3.0-or-later.
-- clang-tidy is clean (`run-clang-tidy -p build "$PWD/(src|tests)/"`); a `NOLINT` names its check and says why.
+- clang-tidy is clean (`python3 Scripts/cpp.py tidy`); a `NOLINT` names its check and says why.
