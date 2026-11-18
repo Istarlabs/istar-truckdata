@@ -16,3 +16,20 @@ licence = "LGPL-3.0-or-later"
 [repo]
 main_branch = "master"
 ci = false
+
+# Created by `repo.py init` and `repo.py labels`, next to the shared ones.
+
+[[repo.labels]]
+name = "area:savegame"
+color = "5319e7"
+description = "Reading and decoding save games"
+
+[[repo.labels]]
+name = "area:company"
+color = "0e8a16"
+description = "The player's company: garages, drivers, vehicles, finances"
+
+[[repo.labels]]
+name = "build"
+color = "fbca04"
+description = "Compiler warnings and the build"
