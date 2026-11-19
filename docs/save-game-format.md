@@ -36,6 +36,15 @@ that decrypt a save, and from the tests, which write it by hand.
 
 Older games also wrote `3nK`, a plain byte scrambling. It is not read here.
 
+### Looking at a whole file
+
+Whichever shape it came in, a read file is a list of units (`SiiDocument::units()`, in the order of the file), and
+`siidump.h` writes all of them out: `dumpText()` as one `type : id { key: value }` block per unit with the values
+sorted, `dumpJson()` as an array of `{type, id, values}`. A whole number a double cannot hold exactly (the economy
+unit's `company_check_hash` is 64 bits) is a string in the JSON. A dump is for looking at a save, there is no way
+back. A real autosave (ETS2 1.62) has 28 493 units of 48 types and is about 9 MB as text; most of that is the
+economy unit's `discovered_items`.
+
 ### `ScsC`: the encryption
 
 | Offset | Size | Content |

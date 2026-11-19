@@ -100,4 +100,9 @@ namespace TruckData::SaveGame
     {
         return m_units.size();
     }
+
+    const QList<SiiUnit>& SiiDocument::units() const
+    {
+        return m_units;
+    }
 } // namespace TruckData::SaveGame

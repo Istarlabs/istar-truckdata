@@ -40,6 +40,8 @@ namespace TruckData::SaveGame
         [[nodiscard]] const SiiUnit* first(const QString& type) const;
         [[nodiscard]] QList<const SiiUnit*> ofType(const QString& type) const;
         [[nodiscard]] qsizetype size() const;
+        /// Every unit, in the order of the file.
+        [[nodiscard]] const QList<SiiUnit>& units() const;
 
     private:
         QList<SiiUnit> m_units;
