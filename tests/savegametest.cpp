@@ -4,9 +4,13 @@
 #include "truckdata/savegame/career.h"
 #include "truckdata/savegame/savegamefile.h"
 #include "truckdata/savegame/savegamelocator.h"
+#include "truckdata/savegame/siidump.h"
 
 #include <QDir>
 #include <QFile>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QTemporaryDir>
 #include <QTest>
 #include <QtEndian>
@@ -272,6 +276,82 @@ police_ctrl : _nameless.5 {
             QCOMPARE(bus.stops, 2);
             // &3f400000 is 0.75.
             QCOMPARE(bus.satisfaction, 0.75);
+        }
+
+        void theUnitsComeInTheOrderOfTheFile()
+        {
+            const auto document = parseText(TextSave);
+            QVERIFY(document.has_value());
+
+            const QList<SiiUnit>& units = document->units();
+
+            QCOMPARE(units.size(), document->size());
+            QCOMPARE(units.first().type, QStringLiteral("bank"));
+            QCOMPARE(units.at(1).type, QStringLiteral("economy"));
+        }
+
+        void theTextDumpListsEveryUnit()
+        {
+            const auto document = parseText(TextSave);
+            QVERIFY(document.has_value());
+
+            const QString text = QString::fromUtf8(dumpText(*document));
+
+            QVERIFY(text.startsWith(QStringLiteral("bank : _nameless.1 {\n  money_account: 9428927\n}\n\n")));
+            QVERIFY(text.contains(QStringLiteral("  visited_cities: [hannover, bremen]\n")));
+            // The values are sorted by name: bank before delivery_log.
+            QVERIFY(text.indexOf(QStringLiteral("  bank: ")) < text.indexOf(QStringLiteral("  delivery_log: ")));
+            QCOMPARE(text.count(QStringLiteral(" {\n")), document->size());
+        }
+
+        void theJsonDumpKeepsNumbersAndLists()
+        {
+            const auto document = parseText(TextSave);
+            QVERIFY(document.has_value());
+
+            const QJsonDocument json = QJsonDocument::fromJson(dumpJson(*document));
+            QVERIFY(json.isArray());
+
+            const QJsonArray units = json.array();
+            QCOMPARE(units.size(), document->size());
+
+            const QJsonObject bank = units.first().toObject();
+            QCOMPARE(bank.value(QStringLiteral("type")).toString(), QStringLiteral("bank"));
+            QCOMPARE(bank.value(QStringLiteral("id")).toString(), QStringLiteral("_nameless.1"));
+            QCOMPARE(bank.value(QStringLiteral("values")).toObject().value(QStringLiteral("money_account")).toInt(),
+                     9428927);
+
+            const QJsonArray cities = units.at(1)
+                                          .toObject()
+                                          .value(QStringLiteral("values"))
+                                          .toObject()
+                                          .value(QStringLiteral("visited_cities"))
+                                          .toArray();
+            QCOMPARE(cities.size(), 2);
+            QCOMPARE(cities.first().toString(), QStringLiteral("hannover"));
+        }
+
+        void aHashADoubleCannotHoldIsWrittenAsAString()
+        {
+            SiiUnit unit;
+            unit.type = QStringLiteral("economy");
+            unit.id = QStringLiteral("_nameless.1");
+            unit.values.insert(QStringLiteral("company_check_hash"),
+                               QVariant::fromValue<quint64>(11154216313227822148ULL));
+            unit.values.insert(QStringLiteral("money"), QVariant::fromValue<quint64>(9749315ULL));
+            SiiDocument document;
+            document.add(unit);
+
+            const QJsonObject values = QJsonDocument::fromJson(dumpJson(document))
+                                           .array()
+                                           .first()
+                                           .toObject()
+                                           .value(QStringLiteral("values"))
+                                           .toObject();
+
+            QCOMPARE(values.value(QStringLiteral("company_check_hash")).toString(),
+                     QStringLiteral("11154216313227822148"));
+            QCOMPARE(values.value(QStringLiteral("money")).toInt(), 9749315);
         }
 
         void theBinaryFormat()

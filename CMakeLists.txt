@@ -41,6 +41,8 @@ add_library(istar-truckdata STATIC
     src/truckdata/savegame/savegamefile.h
     src/truckdata/savegame/savegamelocator.cpp
     src/truckdata/savegame/savegamelocator.h
+    src/truckdata/savegame/siidump.cpp
+    src/truckdata/savegame/siidump.h
     src/truckdata/savegame/siiunit.cpp
     src/truckdata/savegame/siiunit.h
 )
