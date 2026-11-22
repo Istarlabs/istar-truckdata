@@ -18,8 +18,11 @@ Claude Code asks once per project whether these files outside the repository may
 
 - **Qt Core only.** No Gui, no KDE Frameworks, no i18n: the library's texts are English (`SiiError::message()`), and
   an application translates by switching over the error's `Kind`. A KDE dependency here would force it on every user.
-- **Public API = everything under `src/truckdata/`**, included as `"truckdata/<area>/<file>.h"`. Applications rely on
-  the names; a rename is a breaking change and goes into the commit message as such.
+- **Public API = everything under `src/truckdata/`** except `internal/`, included as `"truckdata/<area>/<file>.h"`.
+  Applications rely on the names; a rename is a breaking change and goes into the commit message as such.
+- **A file is not trusted**, and neither is anything it says about itself: a size, a count or an offset in a header is
+  a claim. Compute with it in 64 bits, check it against what was actually read, bound it, and inflate through
+  `internal/inflate.h` (not `qUncompress`, which has no bound). Nothing a damaged file does may throw out of a reader.
 - **`Game`'s numbers are fixed** (0 unknown, 1 ETS2, 2 ATS): applications store them.
 - **Nothing application-specific**: no database, no telemetry, no deduplication against what an application already
   knows. That lives in the application (Wheelstar's `newDeliveries`).

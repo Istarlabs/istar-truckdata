@@ -35,6 +35,12 @@ All numbers little-endian.
 
 Both tables are zlib streams. Their inflated sizes are known: 16 bytes per entry, and the words of the descriptor table.
 
+The header is not trusted. The sizes are computed in 64 bits (the product of 32-bit numbers wraps: 0x10000001 entries
+came out as 16 bytes, and a short table passed for a long one), a table that inflates to more than 64 MiB (a few million
+entries; the base game has a few hundred thousand) is refused, and a stream is inflated into a buffer of exactly the size
+the header gives, so one that goes on or ends short is an error. The offsets of the tables must be within a signed
+64-bit number.
+
 ### An entry, 16 bytes
 
 | Offset | Size | Content |
