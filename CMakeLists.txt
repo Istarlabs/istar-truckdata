@@ -66,3 +66,10 @@ if(ISTAR_TRUCKDATA_TESTS)
     enable_testing()
     add_subdirectory(tests)
 endif()
+
+# The libFuzzer targets of the readers, which `python3 Scripts/cpp.py fuzz` builds with clang and the sanitizers.
+option(ISTAR_TRUCKDATA_FUZZ "Build the fuzz targets of istar-truckdata" OFF)
+
+if(ISTAR_TRUCKDATA_FUZZ)
+    add_subdirectory(fuzz)
+endif()

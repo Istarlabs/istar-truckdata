@@ -78,6 +78,22 @@ cmake -B build && cmake --build build && ctest --test-dir build
 The tests are built when the library is the top-level project (`ISTAR_TRUCKDATA_TESTS`), not when an application adds
 it. The `Scripts/` files are the maintainer's shims into a shared tool checkout; plain CMake is all a user needs.
 
+## Fuzzing
+
+A save game or an archive can come from anywhere, so the readers are meant to answer a damaged or hostile file with an
+error and nothing else: no exception, no read outside a buffer, no allocation the file chose the size of. The tests
+cover the cases that were found by hand; `fuzz/` has libFuzzer targets for the rest (`fuzz_sii`, `fuzz_inflate`,
+`fuzz_hashfs`), with seeds in `fuzz/seeds/`. They need clang:
+
+```bash
+cmake -B build-fuzz -DCMAKE_CXX_COMPILER=clang++ -DISTAR_TRUCKDATA_FUZZ=ON \
+    -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined,fuzzer-no-link" -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"
+cmake --build build-fuzz --target fuzz_sii && build-fuzz/fuzz/fuzz_sii corpus fuzz/seeds/fuzz_sii -max_total_time=60
+```
+
+The maintainer's `python3 Scripts/cpp.py fuzz` does the same, and `cpp.py verify` runs the tests under ASan, UBSan and
+LeakSanitizer as well (`[cpp] sanitize`).
+
 ## The formats
 
 SCS Software documents the telemetry SDK, but not its save games or archives. What this library knows about them comes

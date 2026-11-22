@@ -1,0 +1,104 @@
+SiiNunit
+{
+bank : _nameless.1 {
+ money_account: 9428927
+}
+
+economy : _nameless.2 {
+ bank: _nameless.1
+ experience_points: 314114
+ game_time: 406437
+ total_distances_by_mode: 3
+ total_distances_by_mode[0]: 240255
+ total_distances_by_mode[1]: 3849
+ total_distances_by_mode[2]: 0
+ visited_cities: 2
+ visited_cities[0]: hannover
+ visited_cities[1]: bremen
+ delivery_log: _nameless.3
+ bus_job_log: _nameless.7
+ police_ctrl: _nameless.5
+ total_fuel_litres: 30719
+}
+
+bus_job_log : _nameless.7 {
+ version: 0
+ entries: 1
+ entries[0]: _nameless.8
+}
+
+bus_job_log_entry : _nameless.8 {
+ flags: 1
+ type: company_job
+ assigned_bus: vehicle.volvo.9700_23
+ source_bus_stop_name: city.zurich
+ target_bus_stop_name: city.geneve
+ stage_count: 2
+ exp_delta: 438
+ reward: 4515
+ travelled_distance: 265
+ start_time: 400620
+ end_time: 400862
+ total_passengers: 84
+ satisfaction: &3f400000
+}
+
+delivery_log : _nameless.3 {
+ entries: 2
+ entries[0]: _nameless.4
+ entries[1]: _nameless.6
+}
+
+delivery_log_entry : _nameless.4 {
+ params: 19
+ params[0]: "397719"
+ params[1]: "company.volatile.polarislines.isafjordur"
+ params[2]: "company.volatile.blatt_voruhu.thorshofn"
+ params[3]: "cargo.sandwch_pnls"
+ params[4]: "1162"
+ params[5]: "35851"
+ params[6]: "1002"
+ params[7]: "0.016"
+ params[8]: "1"
+ params[9]: "0"
+ params[10]: "1"
+ params[11]: "1"
+ params[12]: "0"
+ params[13]: "38386"
+ params[14]: "250"
+ params[15]: "397719"
+ params[16]: "vehicle.volvo.fh_2024"
+ params[17]: "982"
+ params[18]: "on_compn"
+}
+
+delivery_log_entry : _nameless.6 {
+ params: 19
+ params[0]: "225585"
+ params[1]: ""
+ params[2]: ""
+ params[3]: ""
+ params[4]: "50"
+ params[5]: "0"
+ params[6]: "100"
+ params[7]: "0.100"
+ params[8]: "0"
+ params[9]: "0"
+ params[10]: "0"
+ params[11]: "1"
+ params[12]: "0"
+ params[13]: "0"
+ params[14]: "0"
+ params[15]: "0"
+ params[16]: ""
+ params[17]: "0"
+ params[18]: "freerm"
+}
+
+police_ctrl : _nameless.5 {
+ offence_counter: 2
+ offence_counter[0]: 531
+ offence_counter[1]: 34
+ offence_timer: &3f800000
+}
+}
