@@ -6,6 +6,15 @@ env_prefix = "TRUCKDATA"
 [cpp]
 build_dir = "build"
 build_type = "RelWithDebInfo"
+# It reads files nobody here wrote: `verify` also runs the tests under ASan, UBSan and LeakSanitizer.
+sanitize = true
+
+# `python3 Scripts/cpp.py fuzz`: libFuzzer over the readers. The seeds are read only; what the fuzzer finds on its way
+# is kept in build/fuzz.
+[cpp.fuzz]
+targets = ["fuzz_sii", "fuzz_inflate", "fuzz_hashfs"]
+option = "ISTAR_TRUCKDATA_FUZZ"
+seeds_dir = "fuzz/seeds"
 
 # Applications of any licence may use it; changes to the library itself stay open.
 [spdx]
