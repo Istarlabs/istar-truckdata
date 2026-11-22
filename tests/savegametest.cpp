@@ -19,6 +19,7 @@
 
 #include <array>
 #include <bit>
+#include <limits>
 #include <ranges>
 
 using namespace TruckData;
@@ -404,6 +405,91 @@ police_ctrl : _nameless.5 {
 
             // Cut short, it says so instead of reading past the end.
             QVERIFY(!parseBinary(file.data().chopped(3)).has_value());
+        }
+
+        void aTokenDigitWithoutACharacterFailsTheReader()
+        {
+            // A structure without fields and a unit whose id is one token. A token is base 38 over 37 characters, so
+            // 38 (digit 37 once the one is taken off) names no character. It used to throw out of the reader.
+            BinaryWriter file;
+            file.value<quint32>(0x49495342).value<quint32>(3);
+            file.value<quint32>(0).value<quint8>(1).value<quint32>(1).text("unit").value<quint32>(0);
+            file.value<quint32>(1).value<quint8>(1).value<quint64>(38);
+
+            const auto document = parseBinary(file.data());
+
+            QVERIFY(!document.has_value());
+            QCOMPARE(document.error().kind, SiiError::Kind::EndsInValue);
+        }
+
+        void aFileOverTheLimitIsNotRead()
+        {
+            const QTemporaryDir directory;
+            QFile file(directory.filePath(QStringLiteral("game.sii")));
+            QVERIFY(file.open(QIODevice::ReadWrite));
+            // Sparse: it takes no space on disk, and nothing is read once its size is known.
+            QVERIFY(file.resize(MaxFileSize + 1));
+
+            const auto document = readSiiFile(file);
+
+            QVERIFY(!document.has_value());
+            QCOMPARE(document.error().kind, SiiError::Kind::TooLarge);
+        }
+
+        void aHeaderPromisingTooMuchIsRefused()
+        {
+            // The size the file says it inflates to is at offset 52 of the header.
+            QByteArray file = encrypt(QByteArray("BSII"));
+            qToLittleEndian<quint32>(0xFFFFFFFFU, file.data() + 52);
+
+            const auto data = decrypt(file);
+
+            QVERIFY(!data.has_value());
+            QCOMPARE(data.error().kind, SiiError::Kind::TooLarge);
+        }
+
+        void aStreamLongerThanItsHeaderSaysIsRefused()
+        {
+            // 8 MiB of zeros deflate to a few kilobytes, and the header says 16 bytes. qUncompress took the size as a
+            // hint and went on to inflate all of it; the stream is refused where it outgrows the size.
+            constexpr qsizetype Size = 8LL * 1024 * 1024;
+            QByteArray file = encrypt(QByteArray(Size, '\0'));
+            qToLittleEndian<quint32>(16, file.data() + 52);
+
+            const auto data = decrypt(file);
+
+            QVERIFY(!data.has_value());
+            QCOMPARE(data.error().kind, SiiError::Kind::CannotUnpack);
+        }
+
+        void aTextUnitWithoutItsEndIsCutShort()
+        {
+            const auto document = parseText("SiiNunit\n{\nbank : _nameless.1 {\n money_account: 1\n");
+
+            QVERIFY(!document.has_value());
+            QCOMPARE(document.error().kind, SiiError::Kind::EndsInValue);
+        }
+
+        void theSmallestNumberIsWrittenAsAString()
+        {
+            // std::llabs of it is undefined; it is a damaged file's number, and a string is what the dump keeps of a
+            // number a double cannot hold.
+            SiiUnit unit;
+            unit.type = QStringLiteral("economy");
+            unit.id = QStringLiteral("_nameless.1");
+            unit.values.insert(QStringLiteral("money"),
+                               QVariant::fromValue<qint64>(std::numeric_limits<qint64>::min()));
+            SiiDocument document;
+            document.add(unit);
+
+            const QJsonObject values = QJsonDocument::fromJson(dumpJson(document))
+                                           .array()
+                                           .first()
+                                           .toObject()
+                                           .value(QStringLiteral("values"))
+                                           .toObject();
+
+            QCOMPARE(values.value(QStringLiteral("money")).toString(), QStringLiteral("-9223372036854775808"));
         }
 
         void theProfilesAreFound()

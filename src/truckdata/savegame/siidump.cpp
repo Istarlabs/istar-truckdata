@@ -11,7 +11,6 @@
 #include <QStringList>
 
 #include <algorithm>
-#include <cstdlib>
 
 namespace TruckData::SaveGame
 {
@@ -59,8 +58,12 @@ namespace TruckData::SaveGame
                         ? QJsonValue(value.toString())
                         : QJsonValue(value.toLongLong());
                 case QMetaType::LongLong:
-                    return std::llabs(value.toLongLong()) > LargestExactInteger ? QJsonValue(value.toString())
-                                                                                : QJsonValue(value.toLongLong());
+                {
+                    // Not std::llabs: it is undefined for the smallest number, which a damaged file can hold.
+                    const qint64 number = value.toLongLong();
+                    return number < -LargestExactInteger || number > LargestExactInteger ? QJsonValue(value.toString())
+                                                                                         : QJsonValue(number);
+                }
                 default:
                     return QJsonValue::fromVariant(value);
             }

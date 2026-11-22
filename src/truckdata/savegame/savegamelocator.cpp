@@ -62,7 +62,7 @@ namespace TruckData::SaveGame
                 return {};
             }
 
-            const auto document = readSiiFile(file.readAll());
+            const auto document = readSiiFile(file);
             const SiiUnit* profile = document ? document->first(u"user_profile"_s) : nullptr;
             return profile != nullptr ? profile->text(u"profile_name"_s) : QString();
         }
