@@ -4,6 +4,7 @@
 #include "truckdata/gamedata/cityhash.h"
 #include "truckdata/gamedata/gamenames.h"
 #include "truckdata/gamedata/hashfsarchive.h"
+#include "truckdata/internal/inflate.h"
 
 #include <QTest>
 #include <QtEndian>
@@ -114,6 +115,28 @@ namespace
         return data;
     }
 
+    /// An archive whose header states `count` entries over the table `table`, with one descriptor word: for what a
+    /// header can claim that the data does not hold.
+    QByteArray archiveClaiming(quint32 count, const QByteArray& table)
+    {
+        constexpr quint64 HeaderSize = 52;
+        const QByteArray packedTable = deflate(table);
+        const QByteArray packedDescriptors = deflate(QByteArray(4, '\0'));
+
+        QByteArray header("SCS#");
+        put<quint16>(header, 2);
+        put<quint16>(header, 0);
+        header.append("CITY");
+        put<quint32>(header, count);
+        put<quint32>(header, static_cast<quint32>(packedTable.size()));
+        put<quint32>(header, 1);
+        put<quint32>(header, static_cast<quint32>(packedDescriptors.size()));
+        put<quint64>(header, HeaderSize);
+        put<quint64>(header, HeaderSize + static_cast<quint64>(packedTable.size()));
+        put<quint64>(header, 0);
+        return header + packedTable + packedDescriptors;
+    }
+
     /// A base game with one city, country, company and cargo, and two languages.
     QByteArray baseGame()
     {
@@ -196,6 +219,47 @@ namespace
         {
             QVERIFY(!HashFsArchive::fromData("SCS#").has_value());
             QVERIFY(!HashFsArchive::fromData(QByteArray(64, 'x')).has_value());
+        }
+
+        void aCountThatWrapsTheTableSizeIsRefused()
+        {
+            // 0x10000001 entries are 2^32 + 16 bytes. In 32 bits that is 16, and a table of one entry passed for it:
+            // the loop then read 268 million entries from a 16-byte buffer.
+            const QByteArray oneEntry(16, '\0');
+
+            QVERIFY(!HashFsArchive::fromData(archiveClaiming(0x10000001U, oneEntry)).has_value());
+            QVERIFY(!HashFsArchive::fromData(archiveClaiming(0x40000001U, oneEntry)).has_value());
+            // The honest count of the same table is accepted, so it is the count that decides.
+            QVERIFY(HashFsArchive::fromData(archiveClaiming(1, oneEntry)).has_value());
+        }
+
+        void anIndexClaimingMoreThanTheLimitIsRefused()
+        {
+            // 2^28 entries are 4 GiB; no allocation is made for it.
+            QVERIFY(!HashFsArchive::fromData(archiveClaiming(0x10000000U, QByteArray(16, '\0'))).has_value());
+        }
+
+        void inflatingKeepsToTheSizeItWasGiven()
+        {
+            using TruckData::Internal::inflate;
+            using TruckData::Internal::InflateError;
+
+            constexpr qsizetype Size = 8LL * 1024 * 1024;
+            constexpr quint64 Limit = 16ULL * 1024 * 1024;
+            const QByteArray zeros(Size, '\0');
+            const QByteArray packed = deflate(zeros);
+
+            QCOMPARE(inflate(packed, zeros.size(), Limit).value_or(QByteArray()), zeros);
+            // What follows the stream is the padding of an encrypted block, and is left alone.
+            QVERIFY(inflate(packed + QByteArray(7, 'x'), zeros.size(), Limit).has_value());
+            // A stream that goes on past the size it was given is refused, and does not grow the buffer.
+            QCOMPARE(inflate(packed, 16, Limit).error(), InflateError::Corrupt);
+            // One that ends short of it is corrupt too.
+            QCOMPARE(inflate(packed, zeros.size() + 1, Limit).error(), InflateError::Corrupt);
+            // A size over the limit is refused before anything is allocated.
+            QCOMPARE(inflate(packed, 0xFFFFFFFFU, Limit).error(), InflateError::TooLarge);
+            // So is one that a stream of ten bytes cannot make, though it is within the limit.
+            QCOMPARE(inflate(QByteArray(10, 'x'), Limit, Limit).error(), InflateError::Corrupt);
         }
 
         void theNamesComeWithTheirTranslations()

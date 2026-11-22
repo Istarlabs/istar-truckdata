@@ -3,9 +3,12 @@
 
 #include "truckdata/gamedata/hashfsarchive.h"
 #include "truckdata/gamedata/cityhash.h"
+#include "truckdata/internal/inflate.h"
 
 #include <QFile>
 #include <QtEndian>
+
+#include <limits>
 
 using namespace Qt::StringLiterals;
 
@@ -21,20 +24,17 @@ namespace TruckData::GameData
         constexpr quint8 DataPart = 0x80;
         constexpr quint8 ZlibCompressed = 0x10;
 
-        /// zlib data whose inflated size is known; qUncompress wants that size in front, big-endian.
-        std::optional<QByteArray> inflate(const QByteArray& deflated, quint32 size)
+        /// The largest an index table may inflate to. The base game has a few hundred thousand entries (a few
+        /// megabytes of table); the header's count is a claim, and this is what it may claim.
+        constexpr quint64 MaxIndexSize = 64ULL * 1024 * 1024;
+        /// An entry's size is a 24-bit number.
+        constexpr quint64 MaxEntrySize = 1ULL << 24U;
+
+        /// zlib data whose inflated size the archive states, which is refused above the limit.
+        std::optional<QByteArray> inflate(const QByteArray& deflated, quint64 size, quint64 limit)
         {
-            QByteArray framed(4, Qt::Uninitialized);
-            qToBigEndian(size, framed.data());
-            framed.append(deflated);
-            QByteArray inflated = qUncompress(framed);
-
-            if (inflated.size() != static_cast<qsizetype>(size))
-            {
-                return std::nullopt;
-            }
-
-            return inflated;
+            auto inflated = Internal::inflate(deflated, size, limit);
+            return inflated ? std::optional(*std::move(inflated)) : std::nullopt;
         }
 
         /// A 24-bit number stored as 16 bits and 8 more.
@@ -95,10 +95,19 @@ namespace TruckData::GameData
         const auto entriesStart = qFromLittleEndian<quint64>(h + 28);
         const auto descriptorsStart = qFromLittleEndian<quint64>(h + 36);
 
+        constexpr auto Largest = static_cast<quint64>(std::numeric_limits<qint64>::max());
+
+        if (entriesStart > Largest || descriptorsStart > Largest)
+        {
+            return std::unexpected(u"the index lies outside the archive"_s);
+        }
+
+        // In 64 bits: the product of two 32-bit numbers is not a 32-bit number, and one that wrapped would let a
+        // short table pass for a long one.
         const auto entries = inflate(archive.bytes(static_cast<qint64>(entriesStart), entriesSize),
-                                     entryCount * static_cast<quint32>(EntrySize));
+                                     static_cast<quint64>(entryCount) * EntrySize, MaxIndexSize);
         const auto descriptors = inflate(archive.bytes(static_cast<qint64>(descriptorsStart), descriptorsSize),
-                                         descriptorWords * static_cast<quint32>(DescriptorSize));
+                                         static_cast<quint64>(descriptorWords) * DescriptorSize, MaxIndexSize);
 
         if (!entries || !descriptors)
         {
@@ -180,7 +189,7 @@ namespace TruckData::GameData
 
             if (compression == ZlibCompressed)
             {
-                return inflate(stored, size);
+                return inflate(stored, size, MaxEntrySize);
             }
 
             // ponytail: other packings (GDeflate, for textures) are passed through; nothing read here uses them.

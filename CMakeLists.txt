@@ -20,11 +20,15 @@ endif()
 find_package(Qt6 6.8 REQUIRED COMPONENTS Core)
 # The games encrypt their save files with AES; OpenSSL's libcrypto decrypts them.
 find_package(OpenSSL REQUIRED COMPONENTS Crypto)
+# And zlib inflates them, with the size of the output under the library's control (Qt's qUncompress has none).
+find_package(ZLIB REQUIRED)
 
 add_library(istar-truckdata STATIC
     src/truckdata/game.h
     src/truckdata/logging.cpp
     src/truckdata/logging.h
+    src/truckdata/internal/inflate.cpp
+    src/truckdata/internal/inflate.h
     src/truckdata/gamedata/cityhash.cpp
     src/truckdata/gamedata/cityhash.h
     src/truckdata/gamedata/gamenames.cpp
@@ -51,7 +55,7 @@ add_library(IstarTruckData::TruckData ALIAS istar-truckdata)
 # std::expected
 target_compile_features(istar-truckdata PUBLIC cxx_std_23)
 target_include_directories(istar-truckdata PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
-target_link_libraries(istar-truckdata PUBLIC Qt6::Core PRIVATE OpenSSL::Crypto)
+target_link_libraries(istar-truckdata PUBLIC Qt6::Core PRIVATE OpenSSL::Crypto ZLIB::ZLIB)
 # Linked into a shared library or a position-independent executable as well.
 set_target_properties(istar-truckdata PROPERTIES POSITION_INDEPENDENT_CODE ON)
 

@@ -58,9 +58,26 @@ economy unit's `discovered_items`.
 The data is AES-256-CBC under a key every copy of the games shares. It is public in SII_Decrypt and is `Key` in
 `savegamefile.cpp`. It is decrypted without removing a padding: zlib ignores whatever follows the end of its stream.
 
-What comes out is a zlib stream (deflate with a zlib header). Qt's `qUncompress()` inflates it, but wants the
-inflated size in front of the stream as four bytes big-endian; the header has it little-endian, so `decrypt()` turns
-it around and puts it in front. A result of another size is an error, not a short save.
+What comes out is a zlib stream (deflate with a zlib header). It is inflated into a buffer of exactly the size the
+header states, by zlib directly (`truckdata/internal/inflate.h`); a result of another size is an error, not a short
+save.
+
+Not by Qt's `qUncompress()`, which takes that size only as a hint and doubles its buffer for as long as the stream goes
+on: 0.6 MB of zlib made it hold 600 MB, and a header can state up to 4 GiB for it to allocate at once.
+
+#### Limits
+
+A save game can come from anywhere, so what the header claims is not trusted:
+
+- A file over `MaxFileSize` (256 MiB) is not read (`SiiError::Kind::TooLarge`); `readSiiFile(QIODevice&)` checks the
+  size before it reads. The real autosave above is 9 MB as text, so this is for a file nobody wrote by playing.
+- A header that says the data inflates to more than `MaxInflatedSize` (512 MiB) is refused as `TooLarge`, before the
+  decryption. One that states more than a deflate stream of that length can make (about 1000 times its size) is
+  `CannotUnpack`, with no buffer made for it.
+
+A token (see below) is base 38 over 37 characters: the digit 37 names none, and a file that has one fails the reader as
+a value that ends nowhere (`EndsInValue`). A text unit that is not closed by the end of the file fails it the same way,
+instead of leaving the unit out of a save that imports in part.
 
 ### `BSII`: the binary shape
 

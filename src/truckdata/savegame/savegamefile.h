@@ -6,6 +6,7 @@
 #include "truckdata/savegame/siiunit.h"
 
 #include <QByteArray>
+#include <QIODevice>
 #include <QString>
 
 #include <expected>
@@ -32,6 +33,8 @@ namespace TruckData::SaveGame
             UnknownValueType,
             /// Neither "ScsC", "BSII" nor "SiiNunit".
             NotASaveGame,
+            /// The file, or what it says it inflates to, is above MaxFileSize or MaxInflatedSize.
+            TooLarge,
         };
 
         Kind kind = Kind::NotASaveGame;
@@ -52,7 +55,19 @@ namespace TruckData::SaveGame
     ///
     /// Reads any of them into its units, or says why it cannot. docs/save-game-format.md describes the format byte
     /// by byte, and what is read from which unit.
+    ///
+    /// A save game can come from anywhere, so the file and what it inflates to are limited: a long career is a few
+    /// tens of megabytes, and these leave room for a hundred times that.
     std::expected<SiiDocument, SiiError> readSiiFile(const QByteArray& file);
+
+    /// The same for a file, which is not read at all once it is over MaxFileSize.
+    std::expected<SiiDocument, SiiError> readSiiFile(QIODevice& device);
+
+    /// The largest file readSiiFile takes, in bytes.
+    inline constexpr qint64 MaxFileSize = 256LL * 1024 * 1024;
+
+    /// The largest size a file may say it inflates to, in bytes.
+    inline constexpr quint64 MaxInflatedSize = 512ULL * 1024 * 1024;
 
     /// The steps of readSiiFile, for the tests.
     std::expected<QByteArray, SiiError> decrypt(const QByteArray& file);

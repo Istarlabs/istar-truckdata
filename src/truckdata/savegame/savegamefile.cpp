@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
 #include "truckdata/savegame/savegamefile.h"
+#include "truckdata/internal/inflate.h"
 
 #include <QRegularExpression>
 #include <QtEndian>
@@ -103,7 +104,16 @@ namespace TruckData::SaveGame
                 while (value != 0)
                 {
                     --value;
-                    result.append(QLatin1Char(Characters.at(value % 38)));
+                    const auto digit = value % 38;
+
+                    // Base 38 with 37 characters: the last digit names none, and only a damaged file has it.
+                    if (digit >= Characters.size())
+                    {
+                        m_failed = true;
+                        return {};
+                    }
+
+                    result.append(QLatin1Char(Characters.at(digit)));
                     value /= 38;
                 }
 
@@ -369,6 +379,15 @@ namespace TruckData::SaveGame
             return raw == u"nil" ? QString() : raw.toString();
         }
 
+        /// The arrays of a text unit, made by their items, become values of the unit.
+        void addArrays(SiiUnit& unit, const QHash<QString, QVariantList>& arrays)
+        {
+            for (auto it = arrays.cbegin(); it != arrays.cend(); ++it)
+            {
+                unit.values.insert(it.key(), *it);
+            }
+        }
+
         /// A line without its comment: "#" or "//" up to the end, unless inside quotes.
         QString withoutComment(const QString& line)
         {
@@ -417,6 +436,8 @@ namespace TruckData::SaveGame
             case Kind::UnknownValueType:
                 return u"The save game has a value of a kind this program does not know (0x%1, \"%2\")."_s.arg(
                     QString::number(valueType, 16), field);
+            case Kind::TooLarge:
+                return u"The save game is too large."_s;
             case Kind::NotASaveGame:
                 break;
         }
@@ -426,6 +447,12 @@ namespace TruckData::SaveGame
 
     std::expected<QByteArray, SiiError> decrypt(const QByteArray& file)
     {
+        // Also keeps the size within what the int of EVP_DecryptUpdate holds.
+        if (file.size() > MaxFileSize)
+        {
+            return std::unexpected(SiiError{.kind = SiiError::Kind::TooLarge});
+        }
+
         if (!file.startsWith("ScsC"))
         {
             return file;
@@ -434,6 +461,14 @@ namespace TruckData::SaveGame
         if (file.size() <= DataOffset)
         {
             return std::unexpected(SiiError{.kind = SiiError::Kind::CutShort});
+        }
+
+        // What the header says it inflates to is checked before the work of decrypting is done.
+        const auto size = qFromLittleEndian<quint32>(file.constData() + SizeOffset);
+
+        if (size > MaxInflatedSize)
+        {
+            return std::unexpected(SiiError{.kind = SiiError::Kind::TooLarge});
         }
 
         const std::unique_ptr<EVP_CIPHER_CTX, decltype(&EVP_CIPHER_CTX_free)> context(EVP_CIPHER_CTX_new(),
@@ -458,19 +493,16 @@ namespace TruckData::SaveGame
 
         plain.truncate(written + last);
 
-        // qUncompress wants the inflated size in front, big-endian; the header has it little-endian.
-        const auto size = qFromLittleEndian<quint32>(file.constData() + SizeOffset);
-        QByteArray framed(4, Qt::Uninitialized);
-        qToBigEndian(size, framed.data());
-        framed.append(plain);
-        QByteArray inflated = qUncompress(framed);
+        auto inflated = Internal::inflate(plain, size, MaxInflatedSize);
 
-        if (inflated.size() != static_cast<qsizetype>(size))
+        if (!inflated)
         {
-            return std::unexpected(SiiError{.kind = SiiError::Kind::CannotUnpack});
+            return std::unexpected(SiiError{.kind = inflated.error() == Internal::InflateError::TooLarge
+                                                ? SiiError::Kind::TooLarge
+                                                : SiiError::Kind::CannotUnpack});
         }
 
-        return inflated;
+        return *std::move(inflated);
     }
 
     std::expected<SiiDocument, SiiError> parseBinary(const QByteArray& data)
@@ -590,11 +622,7 @@ namespace TruckData::SaveGame
 
             if (line == u"}")
             {
-                for (auto it = arrays.cbegin(); it != arrays.cend(); ++it)
-                {
-                    unit->values.insert(it.key(), *it);
-                }
-
+                addArrays(*unit, arrays);
                 document.add(std::move(*unit));
                 unit.reset();
                 continue;
@@ -621,7 +649,23 @@ namespace TruckData::SaveGame
             }
         }
 
+        // A unit still open at the end: the file stops in the middle of it.
+        if (unit)
+        {
+            return std::unexpected(SiiError{.kind = SiiError::Kind::EndsInValue});
+        }
+
         return document;
+    }
+
+    std::expected<SiiDocument, SiiError> readSiiFile(QIODevice& device)
+    {
+        if (device.size() > MaxFileSize)
+        {
+            return std::unexpected(SiiError{.kind = SiiError::Kind::TooLarge});
+        }
+
+        return readSiiFile(device.readAll());
     }
 
     std::expected<SiiDocument, SiiError> readSiiFile(const QByteArray& file)
